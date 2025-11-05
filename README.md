@@ -1,0 +1,1 @@
+use `pio run -t menuconfig` to launch Espressif's CLI based configuration tool.
