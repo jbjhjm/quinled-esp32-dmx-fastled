@@ -22,7 +22,7 @@
 #define DMX_REFRESH_MS 20
 
 CRGB leds[NUM_LEDS];
-static const char *TAG = "APP_MAIN";  // The log tagline.
+static const char *TAG = "MAIN";  // The log tagline.
 static uint8_t data[DMX_PACKET_SIZE] = {};  // Buffer to store DMX data
 
 dmx_packet_t packet;
@@ -34,8 +34,9 @@ TaskHandle_t dmxTaskHandle = NULL;
 TaskHandle_t fastLedTaskHandle = NULL;
 
 void dmxTask(void *pvParameters) {
+	static const char *TAGDMX = "DMX";  // The log tagline.
 	int core = xPortGetCoreID();
-	Serial.print("begin to wait for DMX input");
+	ESP_LOGI(TAGDMX,"begin to wait for DMX input");
 
 	while (true) {
 		// vTaskDelay(1000);
@@ -47,7 +48,7 @@ void dmxTask(void *pvParameters) {
 			
 			if (!is_connected) {
 				// Log when we first connect
-				ESP_LOGI(TAG, "DMX is connected.");
+				ESP_LOGI(TAGDMX, "DMX is connected.");
 				is_connected = true;
 			}
 			
@@ -55,13 +56,13 @@ void dmxTask(void *pvParameters) {
 			if (now - last_update >= pdMS_TO_TICKS(DMX_REFRESH_MS)) {
 				dmx_read(DMX_NUM_1, data, DMX_PACKET_SIZE);
 
-				ESP_LOGI(TAG, "Start code: %02x, Size: %i, Packets/second: %i", packet.sc, packet.size, packet_count); 
+				ESP_LOGI(TAGDMX, "Start code: %02x, Size: %i, Packets/second: %i", packet.sc, packet.size, packet_count); 
 				ESP_LOG_BUFFER_HEX(TAG, data, 16);  // Log first 16 bytes last_update = now; packet_count = 0;
 			}
 				
 		} else if (is_connected) {
 			// DMX timed out after having been previously connected
-			ESP_LOGI(TAG, "DMX was disconnected.");
+			ESP_LOGI(TAGDMX, "DMX was disconnected.");
 			break;
 		}
 	}
@@ -74,14 +75,15 @@ void wait_for_serial_connection() {
 }
 
 void fastledTask(void *pvParameters) {
+	static const char *TAGFASTLED = "DMX";  // The log tagline.
 	const TickType_t xDelay = 1000;
 	for(;;) {
-		ESP_LOGI(TAG,"to red");
+		ESP_LOGI(TAGFASTLED,"to red");
 		leds[0] = CRGB::Red;
 		FastLED.show();
 		vTaskDelay(xDelay);
 		
-		ESP_LOGI(TAG,"to black");
+		ESP_LOGI(TAGFASTLED,"to black");
 		leds[0] = CRGB::Black;
 		FastLED.show();
 		vTaskDelay(xDelay);
