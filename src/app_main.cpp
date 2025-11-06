@@ -34,6 +34,7 @@ TaskHandle_t dmxTaskHandle = NULL;
 
 void dmxTask(void *pvParameters) {
 	int core = xPortGetCoreID();
+	Serial.print("begin to wait for DMX input\n");
 
 	while (true) {
 		// vTaskDelay(1000);
@@ -45,7 +46,7 @@ void dmxTask(void *pvParameters) {
 			
 			if (!is_connected) {
 				// Log when we first connect
-				Serial.printf(TAG, "DMX is connected.");
+				Serial.printf(TAG, "DMX is connected.\n");
 				is_connected = true;
 			}
 			
@@ -59,7 +60,7 @@ void dmxTask(void *pvParameters) {
 				
 		} else if (is_connected) {
 			// DMX timed out after having been previously connected
-			ESP_LOGI(TAG, "DMX was disconnected.");
+			ESP_LOGI(TAG, "DMX was disconnected.\n");
 			break;
 		}
 	}
@@ -71,22 +72,29 @@ void wait_for_serial_connection() {
 	while(!Serial && timeout_end > millis()) {}  //wait until the connection to the PC is established
 }
 
-void fastledTask(void *pvParameters) {
-	Serial.print("to red");
+void fastledTask() {
+	Serial.print("to red\n");
 	leds[0] = CRGB::Red;
 	FastLED.show();
 	delay(1000);
-	Serial.print("to black");
+	Serial.print("to black\n");
 	leds[0] = CRGB::Black;
 	FastLED.show();
 	delay(1000);
 }
 
+void shutdown() {
+	ESP_LOGI(TAG, "Uninstalling the DMX driver.\n");
+	dmx_driver_delete(DMX_NUM_1);
+}
+
 
 
 extern "C" void app_main() {
+	Serial.print("booting...\n");
 	wait_for_serial_connection(); // Optional, but seems to help Teensy out a lot.
-
+	Serial.print("serial connection established\n");
+	
 	dmx_config_t config = DMX_CONFIG_DEFAULT;
 	dmx_personality_t personalities[] = {
 		{1, "Default Personality"}
@@ -94,9 +102,11 @@ extern "C" void app_main() {
 	const int personality_count = 1;
 	dmx_driver_install(DMX_NUM_1, &config, personalities, personality_count);
 	dmx_set_pin(DMX_NUM_1, TX_PIN, RX_PIN, EN_PIN);
-
+	Serial.print("DMX configurated\n");
+	
 	FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
 	FastLED.setBrightness(BRIGHTNESS);
+	Serial.print("FastLED configurated\n");
 
 	xTaskCreatePinnedToCore( // xTaskCreate() would run on random core
 		dmxTask, 
@@ -107,9 +117,10 @@ extern "C" void app_main() {
 		&dmxTaskHandle,
 		1 // core number to run on (0|1)
 	);
-	
-	
-	
-	ESP_LOGI(TAG, "Uninstalling the DMX driver.");
-	dmx_driver_delete(DMX_NUM_1);
+	Serial.print("created DMX task\n");
+
+	while(true) {
+		fastledTask();
+	}
+
 }
