@@ -11,6 +11,13 @@
 // It is recommended to first validate the DMX output is working as intended using a simple DMX controlled light.
 
 #define LED_PIN1     0
+#define LED_PIN2     1
+#define LED_PIN3     2
+#define LED_PIN4     3
+#define LED_PIN5     4
+#define LED_PIN6     5
+#define LED_PIN7     12
+#define LED_PIN8     13
 
 #define NUM_LEDS_PER_STRIP 2
 #define NUM_STRIPS 5
@@ -20,6 +27,8 @@
 #define LED_TYPE    WS2811
 #define COLOR_ORDER RGB
 
-#define DMX_REFRESH_MS 20
-#define DMX_START_OFFSET 2
+#define SPI_REFRESH_MS 15
+
+#define DMX_REFRESH_MS 15
+#define DMX_START_OFFSET 1 // channel 0 will always be zero, index 1-512 will be set
 #define DMX_NUM_CHANNELS 32
