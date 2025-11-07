@@ -1,3 +1,16 @@
+## ESP DMX Controller using fastLED
+
+I wasn't able to find such a project anywhere, so I implemented it on my own.
+I'm sharing this with you so that you have a place to start at if you want to do something similar.
+Note that I'm not an expert for ESP32 and neither C++.
+Please don't expect me to be able to help you if it's not working for you.
+
+The project is supposed to be compiled using vscode/PlatformIO.
+
+The project configuration & IO Pin assignments are set up for a _QuinLed Dig-Octa, which is based on a ESP32-WROOM-32UE_.
+
+## Notes
+
 use `pio run -t menuconfig` to launch Espressif's CLI based configuration tool.
 
 use "PlatformIO: Rebuild Intellisense Index" to regenerate the c_cpp_properties.json file in the .vscode folder.
