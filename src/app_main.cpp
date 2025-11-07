@@ -38,10 +38,22 @@ TickType_t last_update = xTaskGetTickCount();
 TaskHandle_t dmxTaskHandle = NULL;
 TaskHandle_t fastLedTaskHandle = NULL;
 
+// similar to ESP_LOG_BUFFER_HEX, but does not write to serial and has some extras like reading from a offset
+void writeBufferValuesToStringAsHex(char * out, uint8_t* source, int sourceOffset, int numBytesToPrint, int maxSize) {
+	size_t offset;
+	memset(out, 0, maxSize); // empty the out chars so that we can start clean
+	for (int i = 0; i < numBytesToPrint; i++) {
+		offset = strlen(out);
+		snprintf(&out[offset], maxSize - offset, "%x ", source[sourceOffset+i]);
+	};
+}
+
+
 void dmxTask(void *pvParameters) {
 	static const char *TAGDMX = "DMX";  // The log tagline.
 	int core = xPortGetCoreID();
 	ESP_LOGI(TAGDMX,"begin to wait for DMX input");
+	char dmxDebugData[40] = "";
 
 	while (true) {
 		// vTaskDelay(1000);
@@ -61,11 +73,11 @@ void dmxTask(void *pvParameters) {
 			if (now - last_update >= pdMS_TO_TICKS(DMX_REFRESH_MS)) {
 				if (packet.err == DMX_OK) {
 					dmx_read(DMX_NUM_1, data, DMX_PACKET_SIZE);
-					// Read slots 5 through 17. Returns the number of slots that were read.
-					// int num_slots_read = dmx_read_offset(DMX_NUM_1, 5, data, 12);
-	
-					ESP_LOGI(TAGDMX, "Start code: %02x, Size: %i, Packets/second: %i", packet.sc, packet.size, packet_count); 
-					ESP_LOG_BUFFER_HEX(TAG, data, 8);  // Log first 8 bytes last_update = now; packet_count = 0;
+					writeBufferValuesToStringAsHex(dmxDebugData, data, 0, 8, sizeof(dmxDebugData));
+					// const String dmxData = "127 125 000 000";
+					// ESP_LOGI(TAGDMX, "%s", dmxData.c_str());
+					ESP_LOGI(TAGDMX, "Start code: %02x, Size: %i, data: %s", packet.sc, packet.size, dmxDebugData); 
+					// ESP_LOG_BUFFER_HEX(TAG, data, 8);  // Log first 8 bytes 
 				} else {
 					// may happen when adding physical dmx connection?
 
