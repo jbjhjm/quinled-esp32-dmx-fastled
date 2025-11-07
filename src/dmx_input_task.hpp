@@ -12,10 +12,6 @@
 
 static const char *TAGDMX = "DMX";  // The log tagline.
 
-dmx_packet_t packet;
-bool is_connected = false;
-int packet_count = 0;
-TickType_t last_update = xTaskGetTickCount();
 
 
 // extern QueueHandle_t dmxQueue;
@@ -32,9 +28,14 @@ void writeBufferValuesToStringAsHex(char * out, uint8_t* source, int sourceOffse
 
 
 void dmxTask(void *pvParameters) {
-	int core = xPortGetCoreID();
-	ESP_LOGI(TAGDMX,"begin to wait for DMX input");
+	// int core = xPortGetCoreID();
+	ESP_LOGI(TAGDMX,"started DMXInputTask. Waiting for DMX input...");
+
+	dmx_packet_t packet;
+	bool is_connected = false;
+	int packet_count = 0;
 	char dmxDebugData[40] = "";
+	TickType_t last_update = xTaskGetTickCount();
 	
 	while (true) {
 		// vTaskDelay(1000);
@@ -60,9 +61,9 @@ void dmxTask(void *pvParameters) {
 					// xQueueOverwrite(dmxQueue, &data);
 
 					// note that package size will likely be 513 all the time cause thats the standard for DMX data...
-					ESP_LOGI(TAGDMX, "Received packet size: %i, selecting %i-%i, data: %s [...]", 
-						packet.size, DMX_START_OFFSET, DMX_START_OFFSET+DMX_NUM_CHANNELS, dmxDebugData 
-					); 
+					// ESP_LOGI(TAGDMX, "Received packet size: %i, selecting %i-%i, data: %s [...]", 
+					// 	packet.size, DMX_START_OFFSET, DMX_START_OFFSET+DMX_NUM_CHANNELS, dmxDebugData 
+					// ); 
 				} else {
 					// may happen when adding physical dmx connection?
 

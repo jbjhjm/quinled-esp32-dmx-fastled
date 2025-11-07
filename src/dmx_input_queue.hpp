@@ -15,11 +15,6 @@ inline QueueHandle_t dmxQueue;
 	// 				memcpy( &inputMap.color2[0], &data[4], 3*sizeof(uint8_t));
 
 
-// struct DmxInputMap {
-//     uint8_t dimmer;
-// 	uint8_t color1[3];
-// 	uint8_t color2[NUM_CHANNELS_PER_COLOR];
-// };
 
 bool createDmxInputQueue();
 
