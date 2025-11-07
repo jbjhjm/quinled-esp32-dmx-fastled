@@ -1,23 +1,24 @@
 #include <stdint.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
+#include "constants.hpp"
 #include "esp_dmx.h"
 #include "esp_log.h"
-
-#define ESP32
 #include <FastLED.h>
-#include "constants.hpp"
 
 
 CRGB leds[NUM_LEDS];
 static const char *TAG = "MAIN";  // The log tagline.
-static uint8_t data[DMX_PACKET_SIZE] = {};  // Buffer to store DMX data
+static uint8_t data[DMX_NUM_CHANNELS] = {};  // Buffer to store DMX data
 
 dmx_packet_t packet;
 bool is_connected = false;
 int packet_count = 0;
 TickType_t last_update = xTaskGetTickCount();
 
+static QueueHandle_t dmxQueue;
 TaskHandle_t dmxTaskHandle = NULL;
 TaskHandle_t fastLedTaskHandle = NULL;
 
@@ -55,11 +56,12 @@ void dmxTask(void *pvParameters) {
 			// throttle updates  1000ms
 			if (now - last_update >= pdMS_TO_TICKS(DMX_REFRESH_MS)) {
 				if (packet.err == DMX_OK) {
-					dmx_read(DMX_NUM_1, data, DMX_PACKET_SIZE);
+					dmx_read_offset(DMX_NUM_1, DMX_START_OFFSET, data, DMX_NUM_CHANNELS);
 					writeBufferValuesToStringAsHex(dmxDebugData, data, 0, 8, sizeof(dmxDebugData));
-					// const String dmxData = "127 125 000 000";
-					// ESP_LOGI(TAGDMX, "%s", dmxData.c_str());
-					ESP_LOGI(TAGDMX, "Start code: %02x, Size: %i, data: %s", packet.sc, packet.size, dmxDebugData); 
+
+					// note that package size will likely be 513 all the time cause thats the standard for DMX data...
+					ESP_LOGI(TAGDMX, "Received packet size: %i, selecting %i-%i, data: %s [...]", 
+						packet.size, DMX_START_OFFSET, DMX_START_OFFSET+DMX_NUM_CHANNELS, dmxDebugData ); 
 					// ESP_LOG_BUFFER_HEX(TAG, data, 8);  // Log first 8 bytes 
 				} else {
 					// may happen when adding physical dmx connection?
@@ -106,11 +108,20 @@ void shutdown() {
 	dmx_driver_delete(DMX_NUM_1);
 }
 
-
+bool createDmxInputQueue() {
+	dmxQueue = xQueueCreate(1, DMX_NUM_CHANNELS);
+	if(!dmxQueue){
+    	Serial.printf("Impossible to create the queue");
+		return false;
+	}
+	return true;
+}
 
 extern "C" void app_main() {
 	wait_for_serial_connection(); // Optional, but seems to help Teensy out a lot.
 	ESP_LOGI(TAG, "=== serial connection established ===");
+
+	if(!createDmxInputQueue()) return;
 	
 	dmx_config_t config = DMX_CONFIG_DEFAULT;
 	dmx_personality_t personalities[] = {
