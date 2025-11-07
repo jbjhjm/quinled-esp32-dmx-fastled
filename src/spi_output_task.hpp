@@ -9,12 +9,34 @@
 #include <FastLED.h>
 
 // local only
+const char *TAGFASTLED = "DMX";  // The log tagline.
 static CRGB leds[NUM_LEDS];
 
+// struct DmxInputMap {
+//     uint8_t dimmer;
+// 	uint8_t color1[3];
+// 	uint8_t color2[NUM_CHANNELS_PER_COLOR];
+// };
+
+
+void updateDmxMap(uint8_t (&source)[DMX_NUM_CHANNELS], CRGB (&target)[NUM_LEDS]) {
+	// ESP_LOGI(TAGFASTLED, "received new DMX buffer");
+	FastLED.setBrightness((unsigned int) source[0]);
+	// const unsigned int dim = (unsigned int) source[0];
+	// const float multiplier = dim / 255;
+	CRGB tmp;
+	for(int i=0; i<NUM_LEDS; i++) {
+		target[i].setRGB(
+			(unsigned int) source[(i*3)+1],
+			(unsigned int) source[(i*3)+2],
+			(unsigned int) source[(i*3)+3]
+		);
+		// target[i] = tmp;
+	}
+}
+
 void spiOutputTask(void *pvParameters) {
-	uint8_t data[DMX_NUM_CHANNELS];  // Buffer to store DMX data
-	static const char *TAGFASTLED = "DMX";  // The log tagline.
-	const TickType_t xDelay = 1000;
+
 	for(;;) {
 		bool newInput = xQueueReceive(dmxQueue, &data, 0);
 		if(newInput) {
@@ -31,4 +53,11 @@ void spiOutputTask(void *pvParameters) {
 		FastLED.show();
 		vTaskDelay(xDelay);
 	}
+}
+
+void prepareSpiOutputTask() {
+		
+	FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
+	FastLED.setBrightness(BRIGHTNESS);
+
 }

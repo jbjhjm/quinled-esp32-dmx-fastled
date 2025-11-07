@@ -81,3 +81,23 @@ void dmxTask(void *pvParameters) {
 	}
 }
 
+void prepareDmxTask() {
+		
+	dmx_config_t config = DMX_CONFIG_DEFAULT;
+	dmx_personality_t personalities[] = {
+		{1, "Default Personality"}
+	};
+
+	const int personality_count = 1;
+
+	dmx_driver_install(DMX_NUM_1, &config, personalities, personality_count);
+	dmx_set_pin(DMX_NUM_1, TX_PIN, RX_PIN, EN_PIN);
+	// dmx_set_start_address(DMX_NUM_1, 0);
+	// dmx_set_current_personality(DMX_NUM_1, 0);
+
+}
+
+void shutdownDmxTask() {
+	ESP_LOGI(TAGDMX, "Uninstalling the DMX driver.");
+	dmx_driver_delete(DMX_NUM_1);
+}
