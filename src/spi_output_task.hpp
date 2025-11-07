@@ -11,6 +11,7 @@
 // local only
 const char *TAGFASTLED = "DMX";  // The log tagline.
 static CRGB leds[NUM_TOTAL_LEDS];
+const int maxDmxInputRGBs = (int)((DMX_NUM_CHANNELS - 1) / 3);
 
 // struct DmxInputMap {
 //     uint8_t dimmer;
@@ -19,13 +20,13 @@ static CRGB leds[NUM_TOTAL_LEDS];
 // };
 
 
-void updateDmxMap(uint8_t (&source)[DMX_NUM_CHANNELS], CRGB (&target)[NUM_LEDS]) {
+void updateDmxMap(uint8_t (&source)[DMX_NUM_CHANNELS], CRGB (&target)[NUM_TOTAL_LEDS]) {
 	// ESP_LOGI(TAGFASTLED, "received new DMX buffer");
 	FastLED.setBrightness((unsigned int) source[0]);
 	// const unsigned int dim = (unsigned int) source[0];
 	// const float multiplier = dim / 255;
 	CRGB tmp;
-	for(int i=0; i<NUM_TOTAL_LEDS; i++) {
+	for(int i=0; i<NUM_TOTAL_LEDS && i<maxDmxInputRGBs; i++) {
 		target[i].setRGB(
 			(unsigned int) source[(i*3)+1],
 			(unsigned int) source[(i*3)+2],
