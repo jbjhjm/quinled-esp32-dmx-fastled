@@ -9,10 +9,8 @@
 #include "esp_log.h"
 #include <FastLED.h>
 
-
 CRGB leds[NUM_LEDS];
 static const char *TAG = "MAIN";  // The log tagline.
-static uint8_t data[DMX_NUM_CHANNELS] = {};  // Buffer to store DMX data
 
 dmx_packet_t packet;
 bool is_connected = false;
@@ -21,6 +19,8 @@ TickType_t last_update = xTaskGetTickCount();
 
 TaskHandle_t dmxTaskHandle = NULL;
 TaskHandle_t fastLedTaskHandle = NULL;
+
+// extern QueueHandle_t dmxQueue;
 
 // similar to ESP_LOG_BUFFER_HEX, but does not write to serial and has some extras like reading from a offset
 void writeBufferValuesToStringAsHex(char * out, uint8_t* source, int sourceOffset, int numBytesToPrint, int maxSize) {
@@ -34,11 +34,11 @@ void writeBufferValuesToStringAsHex(char * out, uint8_t* source, int sourceOffse
 
 
 void dmxTask(void *pvParameters) {
-	static const char *TAGDMX = "DMX";  // The log tagline.
+	const char *TAGDMX = "DMX";  // The log tagline.
 	int core = xPortGetCoreID();
 	ESP_LOGI(TAGDMX,"begin to wait for DMX input");
 	char dmxDebugData[40] = "";
-
+	
 	while (true) {
 		// vTaskDelay(1000);
 
@@ -56,12 +56,16 @@ void dmxTask(void *pvParameters) {
 			// throttle updates  1000ms
 			if (now - last_update >= pdMS_TO_TICKS(DMX_REFRESH_MS)) {
 				if (packet.err == DMX_OK) {
+					uint8_t data[DMX_NUM_CHANNELS] = {};  // Buffer to store DMX data
 					dmx_read_offset(DMX_NUM_1, DMX_START_OFFSET, data, DMX_NUM_CHANNELS);
 					writeBufferValuesToStringAsHex(dmxDebugData, data, 0, 8, sizeof(dmxDebugData));
+					xQueueSend(dmxQueue, &data, 0);
+					// xQueueOverwrite(dmxQueue, &data);
 
 					// note that package size will likely be 513 all the time cause thats the standard for DMX data...
 					ESP_LOGI(TAGDMX, "Received packet size: %i, selecting %i-%i, data: %s [...]", 
-						packet.size, DMX_START_OFFSET, DMX_START_OFFSET+DMX_NUM_CHANNELS, dmxDebugData ); 
+						packet.size, DMX_START_OFFSET, DMX_START_OFFSET+DMX_NUM_CHANNELS, dmxDebugData 
+					); 
 					// ESP_LOG_BUFFER_HEX(TAG, data, 8);  // Log first 8 bytes 
 				} else {
 					// may happen when adding physical dmx connection?
@@ -88,9 +92,17 @@ void wait_for_serial_connection() {
 }
 
 void fastledTask(void *pvParameters) {
+	uint8_t data[DMX_NUM_CHANNELS];  // Buffer to store DMX data
 	static const char *TAGFASTLED = "DMX";  // The log tagline.
 	const TickType_t xDelay = 1000;
 	for(;;) {
+		bool newInput = xQueueReceive(dmxQueue, &data, 0);
+		if(newInput) {
+			ESP_LOGI(TAGFASTLED, "received new DMX buffer");
+		} else {
+			// ESP_LOGI(TAGFASTLED, "received new DMX buffer");
+
+		}
 		// ESP_LOGI(TAGFASTLED,"to red");
 		leds[0] = CRGB::Red;
 		FastLED.show();

@@ -5,7 +5,7 @@
 static const char *TAG = "DMX_QUEUE";  // The log tagline.
 
 bool createDmxInputQueue() {
-	dmxQueue = xQueueCreate(1, DMX_NUM_CHANNELS * sizeof(uint8_t));
+	dmxQueue = xQueueCreate(1, sizeof(uint8_t) * DMX_NUM_CHANNELS);
 	if(!dmxQueue){
     	ESP_LOGE(TAG, "Impossible to create the queue");
 		return false;
