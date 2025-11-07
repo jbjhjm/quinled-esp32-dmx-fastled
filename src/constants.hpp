@@ -10,8 +10,12 @@
 // I then tested with a GrandMA 2port node and everything is running perfectly fine.
 // It is recommended to first validate the DMX output is working as intended using a simple DMX controlled light.
 
-#define LED_PIN     0
-#define NUM_LEDS    2
+#define LED_PIN1     0
+
+#define NUM_LEDS_PER_STRIP 2
+#define NUM_STRIPS 5
+#define NUM_TOTAL_LEDS NUM_STRIPS * NUM_LEDS_PER_STRIP
+
 #define BRIGHTNESS  150
 #define LED_TYPE    WS2811
 #define COLOR_ORDER RGB

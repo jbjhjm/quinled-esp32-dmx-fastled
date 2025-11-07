@@ -10,7 +10,7 @@
 
 // local only
 const char *TAGFASTLED = "DMX";  // The log tagline.
-static CRGB leds[NUM_LEDS];
+static CRGB leds[NUM_TOTAL_LEDS];
 
 // struct DmxInputMap {
 //     uint8_t dimmer;
@@ -25,7 +25,7 @@ void updateDmxMap(uint8_t (&source)[DMX_NUM_CHANNELS], CRGB (&target)[NUM_LEDS])
 	// const unsigned int dim = (unsigned int) source[0];
 	// const float multiplier = dim / 255;
 	CRGB tmp;
-	for(int i=0; i<NUM_LEDS; i++) {
+	for(int i=0; i<NUM_TOTAL_LEDS; i++) {
 		target[i].setRGB(
 			(unsigned int) source[(i*3)+1],
 			(unsigned int) source[(i*3)+2],
@@ -57,7 +57,7 @@ void spiOutputTask(void *pvParameters) {
 
 void prepareSpiOutputTask() {
 		
-	FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
+	FastLED.addLeds<LED_TYPE, LED_PIN1, COLOR_ORDER>(leds, NUM_LEDS_PER_STRIP*0, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
 	FastLED.setBrightness(BRIGHTNESS);
 
 }
