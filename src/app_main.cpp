@@ -4,6 +4,7 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "constants.hpp"
+#include "dmx_input_queue.hpp"
 #include "esp_dmx.h"
 #include "esp_log.h"
 #include <FastLED.h>
@@ -18,7 +19,6 @@ bool is_connected = false;
 int packet_count = 0;
 TickType_t last_update = xTaskGetTickCount();
 
-static QueueHandle_t dmxQueue;
 TaskHandle_t dmxTaskHandle = NULL;
 TaskHandle_t fastLedTaskHandle = NULL;
 
@@ -108,14 +108,7 @@ void shutdown() {
 	dmx_driver_delete(DMX_NUM_1);
 }
 
-bool createDmxInputQueue() {
-	dmxQueue = xQueueCreate(1, DMX_NUM_CHANNELS);
-	if(!dmxQueue){
-    	Serial.printf("Impossible to create the queue");
-		return false;
-	}
-	return true;
-}
+
 
 extern "C" void app_main() {
 	wait_for_serial_connection(); // Optional, but seems to help Teensy out a lot.
