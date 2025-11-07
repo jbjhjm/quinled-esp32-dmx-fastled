@@ -10,9 +10,14 @@
 // #include "freertos/task.h"
 
 #define TX_PIN 15  // The DMX transmit pin.
-#define RX_PIN 14  // The DMX receive pin.
-#define EN_PIN 16  // The DMX transmit enable pin.
+#define RX_PIN 16  // The DMX receive pin.
+#define EN_PIN -1  // The DMX transmit enable pin. Set to -1 if the used RS48 board manages mode switching internally. (RTS, DE/RE pins)
 
+
+// NOTE: different DMX senders may be incompatible.
+// a setup with QLCplus + a cheap generic usb-dmx interface did not work.
+// I then tested with a GrandMA 2port node and everything is running perfectly fine.
+// It is recommended to first validate the DMX output is working as intended using a simple DMX controlled light.
 
 #define LED_PIN     0
 #define NUM_LEDS    2
@@ -54,16 +59,27 @@ void dmxTask(void *pvParameters) {
 			
 			// throttle updates  1000ms
 			if (now - last_update >= pdMS_TO_TICKS(DMX_REFRESH_MS)) {
-				dmx_read(DMX_NUM_1, data, DMX_PACKET_SIZE);
+				if (packet.err == DMX_OK) {
+					dmx_read(DMX_NUM_1, data, DMX_PACKET_SIZE);
+					// Read slots 5 through 17. Returns the number of slots that were read.
+					// int num_slots_read = dmx_read_offset(DMX_NUM_1, 5, data, 12);
+	
+					ESP_LOGI(TAGDMX, "Start code: %02x, Size: %i, Packets/second: %i", packet.sc, packet.size, packet_count); 
+					ESP_LOG_BUFFER_HEX(TAG, data, 8);  // Log first 8 bytes last_update = now; packet_count = 0;
+				} else {
+					// may happen when adding physical dmx connection?
 
-				ESP_LOGI(TAGDMX, "Start code: %02x, Size: %i, Packets/second: %i", packet.sc, packet.size, packet_count); 
-				ESP_LOG_BUFFER_HEX(TAG, data, 16);  // Log first 16 bytes last_update = now; packet_count = 0;
+					ESP_LOGI(TAGDMX, "An error occurred receiving DMX!");
+				}
 			}
 				
 		} else if (is_connected) {
 			// DMX timed out after having been previously connected
 			ESP_LOGI(TAGDMX, "DMX was disconnected.");
-			break;
+			// breaking ends task and enforces an application restart.
+			// break; 
+		} else  {
+			ESP_LOGI(TAGDMX, "no connection found.");
 		}
 	}
 }
@@ -78,12 +94,12 @@ void fastledTask(void *pvParameters) {
 	static const char *TAGFASTLED = "DMX";  // The log tagline.
 	const TickType_t xDelay = 1000;
 	for(;;) {
-		ESP_LOGI(TAGFASTLED,"to red");
+		// ESP_LOGI(TAGFASTLED,"to red");
 		leds[0] = CRGB::Red;
 		FastLED.show();
 		vTaskDelay(xDelay);
 		
-		ESP_LOGI(TAGFASTLED,"to black");
+		// ESP_LOGI(TAGFASTLED,"to black");
 		leds[0] = CRGB::Black;
 		FastLED.show();
 		vTaskDelay(xDelay);
@@ -108,6 +124,8 @@ extern "C" void app_main() {
 	const int personality_count = 1;
 	dmx_driver_install(DMX_NUM_1, &config, personalities, personality_count);
 	dmx_set_pin(DMX_NUM_1, TX_PIN, RX_PIN, EN_PIN);
+	// dmx_set_start_address(DMX_NUM_1, 0);
+	// dmx_set_current_personality(DMX_NUM_1, 0);
 	ESP_LOGI(TAG, "DMX configurated");
 	
 	FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
