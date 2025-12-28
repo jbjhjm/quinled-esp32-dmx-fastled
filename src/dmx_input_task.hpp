@@ -38,26 +38,26 @@ void dmxTask(void *pvParameters) {
 	TickType_t last_update = xTaskGetTickCount();
 	
 	while (true) {
-		// vTaskDelay(1000);
+		const TickType_t now = xTaskGetTickCount();
+		if (now - last_update >= pdMS_TO_TICKS(DMX_REFRESH_MS)) {
 
-		// Block until a packet is received
-		if (dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK)) {
-			const TickType_t now = xTaskGetTickCount();
-			++packet_count;
+			// Block until a packet is received
+			if (dmx_receive(DMX_NUM_1, &packet, DMX_TIMEOUT_TICK)) {
+				++packet_count;
+				
+				if (!is_connected) {
+					// Log when we first connect
+					ESP_LOGI(TAGDMX, "DMX is connected.");
+					is_connected = true;
+				}
 			
-			if (!is_connected) {
-				// Log when we first connect
-				ESP_LOGI(TAGDMX, "DMX is connected.");
-				is_connected = true;
-			}
-			
-			// throttle updates  1000ms
-			if (now - last_update >= pdMS_TO_TICKS(DMX_REFRESH_MS)) {
+				// throttle updates  1000ms
 				if (packet.err == DMX_OK) {
 					uint8_t data[DMX_NUM_CHANNELS] = {};  // Buffer to store DMX data
 					dmx_read_offset(DMX_NUM_1, DMX_START_OFFSET, data, DMX_NUM_CHANNELS);
 					writeBufferValuesToStringAsHex(dmxDebugData, data, 0, 8, sizeof(dmxDebugData));
 					xQueueSend(dmxQueue, &data, 0);
+					ESP_LOGI(TAGDMX, "Sent DMX input data to dmxQueue");
 					// xQueueOverwrite(dmxQueue, &data);
 
 					// note that package size will likely be 513 all the time cause thats the standard for DMX data...
@@ -69,15 +69,18 @@ void dmxTask(void *pvParameters) {
 
 					ESP_LOGI(TAGDMX, "An error occurred receiving DMX!");
 				}
+					
+			} else if (is_connected) {
+				// DMX timed out after having been previously connected
+				ESP_LOGI(TAGDMX, "DMX was disconnected.");
+				// breaking ends task and enforces an application restart.
+				// break; 
+			} else  {
+				ESP_LOGI(TAGDMX, "no connection found.");
 			}
-				
-		} else if (is_connected) {
-			// DMX timed out after having been previously connected
-			ESP_LOGI(TAGDMX, "DMX was disconnected.");
-			// breaking ends task and enforces an application restart.
-			// break; 
-		} else  {
-			ESP_LOGI(TAGDMX, "no connection found.");
+		} else {
+			vTaskDelay(pdMS_TO_TICKS(10));
+
 		}
 	}
 }

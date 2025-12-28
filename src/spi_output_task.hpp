@@ -46,12 +46,9 @@ void spiOutputTask(void *pvParameters) {
 		const TickType_t now = xTaskGetTickCount();
 		if (now - last_update >= pdMS_TO_TICKS(SPI_REFRESH_MS)) {
 			bool newInput = xQueueReceive(dmxQueue, &dmxInput, 0);
-			if(newInput) {
-				updateDmxMap(dmxInput, leds);
-				FastLED.show();
-				ESP_LOGI(TAGFASTLED, "Out1 CHannels: %i %i %i", leds[0].r, leds[0].g, leds[0].b);
 			}
-		}
+
+			vTaskDelay(20);
 	}
 }
 
