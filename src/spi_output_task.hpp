@@ -9,8 +9,8 @@
 #include <FastLED.h>
 
 // local only
-const char *TAGFASTLED = "DMX";  // The log tagline.
-static CRGB leds[NUM_TOTAL_LEDS];
+const char *TAGFASTLED = "FASTLED";  // The log tagline.
+static CRGB ledOutputValues[NUM_LED_OUTPUTS_TOTAL];
 const int maxDmxInputRGBs = (int)((DMX_NUM_CHANNELS - 1) / 3);
 
 // struct DmxInputMap {
@@ -26,12 +26,18 @@ void updateDmxMap(uint8_t (&source)[DMX_NUM_CHANNELS], CRGB (&target)[NUM_TOTAL_
 	// const unsigned int dim = (unsigned int) source[0];
 	// const float multiplier = dim / 255;
 	CRGB tmp;
-	for(int i=0; i<NUM_TOTAL_LEDS && i<maxDmxInputRGBs; i++) {
-		target[i].setRGB(
-			(unsigned int) source[(i*3)+1],
-			(unsigned int) source[(i*3)+2],
-			(unsigned int) source[(i*3)+3]
-		);
+	int sourceOffset;
+	for(int currBlockIndex=0; currBlockIndex<NUM_LED_BLOCKS_TOTAL; currBlockIndex++) {
+		sourceOffset = currBlockIndex*3 + 1;
+		if(sourceOffset+3 >= DMX_NUM_CHANNELS) break;
+		for(int currLedIndex=0; currLedIndex<NUM_LED_BLOCK_SIZE; currLedIndex++) {
+			const int currentAbsoluteIndex = currBlockIndex * NUM_LED_BLOCK_SIZE + currLedIndex;
+			target[currentAbsoluteIndex].setRGB(
+				source[(sourceOffset)],
+				source[(sourceOffset+1)],
+				source[(sourceOffset+2)]
+			);
+		}
 		// target[i] = tmp;
 	}
 }
@@ -60,25 +66,28 @@ void spiOutputTastTask(void *pvParameters) {
 
 	for(;;) {
 		ESP_LOGI(TAGFASTLED,"to red");
-		leds[0] = CRGB::Red;
+		ledOutputValues[0] = CRGB::Red;
 		FastLED.show();
 		vTaskDelay(xDelay);
 		
 		// ESP_LOGI(TAGFASTLED,"to black");
-		leds[0] = CRGB::Black;
+		ledOutputValues[0] = CRGB::Black;
 		FastLED.show();
 		vTaskDelay(xDelay);
+		last_update = xTaskGetTickCount();
 	}
 }
 
 void prepareSpiOutputTask() {
 		
-	FastLED.addLeds<LED_TYPE, LED_PIN1, COLOR_ORDER>(leds, NUM_LEDS_PER_STRIP*0, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
-	FastLED.addLeds<LED_TYPE, LED_PIN2, COLOR_ORDER>(leds, NUM_LEDS_PER_STRIP*1, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
-	FastLED.addLeds<LED_TYPE, LED_PIN3, COLOR_ORDER>(leds, NUM_LEDS_PER_STRIP*2, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
-	FastLED.addLeds<LED_TYPE, LED_PIN4, COLOR_ORDER>(leds, NUM_LEDS_PER_STRIP*3, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
-	FastLED.addLeds<LED_TYPE, LED_PIN5, COLOR_ORDER>(leds, NUM_LEDS_PER_STRIP*4, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
-	// FastLED.addLeds<NEOPIXEL, 2>(leds, 0, NUM_LEDS_PER_STRIP);
+	
+		
+	FastLED.addLeds<LED_TYPE, LED_PIN1, COLOR_ORDER>(ledOutputValues, NUM_LEDS_PER_STRIP*0, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
+	FastLED.addLeds<LED_TYPE, LED_PIN2, COLOR_ORDER>(ledOutputValues, NUM_LEDS_PER_STRIP*1, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
+	FastLED.addLeds<LED_TYPE, LED_PIN3, COLOR_ORDER>(ledOutputValues, NUM_LEDS_PER_STRIP*2, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
+	FastLED.addLeds<LED_TYPE, LED_PIN4, COLOR_ORDER>(ledOutputValues, NUM_LEDS_PER_STRIP*3, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
+	FastLED.addLeds<LED_TYPE, LED_PIN5, COLOR_ORDER>(ledOutputValues, NUM_LEDS_PER_STRIP*4, NUM_LEDS_PER_STRIP).setCorrection(UncorrectedColor);
+	// FastLED.addLeds<NEOPIXEL, 2>(ledOutputValues, 0, NUM_LEDS_PER_STRIP);
 
 	FastLED.setBrightness(BRIGHTNESS);
 
