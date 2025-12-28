@@ -1,4 +1,5 @@
 #define ESP32
+#define SIMULATE false
 
 #define TX_PIN 15  // The DMX transmit pin.
 #define RX_PIN 16  // The DMX receive pin.

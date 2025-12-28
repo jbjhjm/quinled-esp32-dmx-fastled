@@ -32,11 +32,22 @@ void updateDmxMap(uint8_t (&source)[DMX_NUM_CHANNELS], CRGB (&target)[NUM_TOTAL_
 		if(sourceOffset+3 >= DMX_NUM_CHANNELS) break;
 		for(int currLedIndex=0; currLedIndex<NUM_LED_BLOCK_SIZE; currLedIndex++) {
 			const int currentAbsoluteIndex = currBlockIndex * NUM_LED_BLOCK_SIZE + currLedIndex;
+			if(SIMULATE) {
+				if(currentAbsoluteIndex!=0) continue;
+				ESP_LOGI(TAGFASTLED, 
+					"Out1 CHannels: Dim: %i - final RGB: %f %f %f", 
+					source[0],
+					source[(sourceOffset)],
+					source[(sourceOffset)+1],
+					source[(sourceOffset)+2],
+				);
+			} else {
 			target[currentAbsoluteIndex].setRGB(
 				source[(sourceOffset)],
 				source[(sourceOffset+1)],
 				source[(sourceOffset+2)]
 			);
+			}
 		}
 		// target[i] = tmp;
 	}
@@ -47,14 +58,25 @@ void spiOutputTask(void *pvParameters) {
 
 	const TickType_t xDelay = 10;
 	TickType_t last_update = xTaskGetTickCount();
+	const TickType_t updateAfterTicks = pdMS_TO_TICKS(SPI_REFRESH_MS);
+	ESP_LOGI(TAGFASTLED, "updateAfterTicks %i", updateAfterTicks);
 
 	for(;;) {
+		// if ((now - last_update) >= pdMS_TO_TICKS(SPI_REFRESH_MS)) {
+		// ESP_LOGI(TAGFASTLED, "Refresh %i", now);
+		bool newInput = xQueueReceive(dmxQueue, &dmxInput, 0);
+		if(newInput == pdPASS) {
 		const TickType_t now = xTaskGetTickCount();
-		if (now - last_update >= pdMS_TO_TICKS(SPI_REFRESH_MS)) {
-			bool newInput = xQueueReceive(dmxQueue, &dmxInput, 0);
+			ESP_LOGI(TAGFASTLED, "New Input available, ticks since last update: %i", now - last_update);
+			// 	ESP_LOGI(TAGFASTLED, "Out1 CHannels: %i %i %i", ledOutputValues[0].r, ledOutputValues[0].g, ledOutputValues[0].b);
+			updateDmxMap(dmxInput, ledOutputValues);
+			if(!SIMULATE) FastLED.show();
+			last_update = xTaskGetTickCount();
 			}
 
 			vTaskDelay(20);
+		// }
+		// vTaskDelay(xDelay);
 	}
 }
 
