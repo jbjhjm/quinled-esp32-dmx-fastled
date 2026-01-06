@@ -35,4 +35,5 @@
 
 #define DMX_REFRESH_MS 15
 #define DMX_START_OFFSET 1 // channel 0 will always be zero, index 1-512 will be set
+#define DMX_START_OFFSET 17 // for controller 2
 #define DMX_NUM_CHANNELS 32
